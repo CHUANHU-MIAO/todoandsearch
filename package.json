@@ -1,0 +1,51 @@
+{
+  "name": "todo-floating-search",
+  "version": "1.0.0",
+  "description": "桌面悬浮待办清单与文件搜索工具",
+  "main": "main.js",
+  "author": "TodoSearch",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "npm run icon && electron-builder --dir",
+    "dist": "npm run icon && electron-builder",
+    "dist:win": "npm run icon && electron-builder --win",
+    "icon": "node scripts/generate-icon.js"
+  },
+  "build": {
+    "appId": "com.todosearch.app",
+    "productName": "TodoSearch",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "style.css",
+      "renderer.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^26.8.1"
+  }
+}
