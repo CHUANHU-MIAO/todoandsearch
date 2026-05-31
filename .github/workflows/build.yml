@@ -1,0 +1,71 @@
+name: 构建与发布
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 生成图标
+        run: node scripts/generate-icon.js
+
+      - name: 构建 Windows 安装包
+        run: npm run dist:win
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: 上传构建产物（Artifact）
+        uses: actions/upload-artifact@v4
+        with:
+          name: TodoSearch-Windows
+          path: release/
+          retention-days: 30
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: TodoSearch-Windows
+          path: release/
+
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**
+          generate_release_notes: true
+          body: |
+            ## TodoSearch v${{ github.ref_name }}
+
+            桌面悬浮待办清单与文件搜索工具。
+
+            ### 下载
+            - `*-portable.exe` — 便携版，无需安装
+            - `*-Setup.exe` — 安装版
+          fail_on_unmatched_files: false
