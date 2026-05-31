@@ -1,7 +1,7 @@
 {
   "name": "todo-floating-search",
   "version": "1.0.0",
-  "description": "桌面悬浮待办清单与文件搜索工具",
+  "description": "妗岄潰鎮诞寰呭姙娓呭崟涓庢枃浠舵悳绱㈠伐鍏?,
   "main": "main.js",
   "author": "TodoSearch",
   "license": "MIT",
@@ -28,11 +28,10 @@
     ],
     "win": {
       "target": [
-        "portable",
-        "nsis"
+        { "target": "portable", "artifactName": "${productName}-${version}-${arch}-portable.${ext}" },
+        { "target": "nsis", "artifactName": "${productName}-${version}-${arch}-Setup.${ext}" }
       ],
-      "icon": "build/icon.png",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,
