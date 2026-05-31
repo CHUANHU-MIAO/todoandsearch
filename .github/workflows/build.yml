@@ -1,5 +1,4 @@
-name: 构建与发布
-
+name: 鏋勫缓涓庡彂甯?
 on:
   push:
     branches: [main]
@@ -16,31 +15,30 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
+      - name: 妫€鍑轰唬鐮?        uses: actions/checkout@v4
 
-      - name: 安装 Node.js
+      - name: 瀹夎 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: 安装依赖
+      - name: 瀹夎渚濊禆
         run: npm ci
 
-      - name: 生成图标
+      - name: 鐢熸垚鍥炬爣
         run: node scripts/generate-icon.js
 
-      - name: 构建 Windows 安装包
-        run: npm run dist:win
+      - name: 鏋勫缓 Windows 瀹夎鍖?        run: npm run dist:win
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: 上传构建产物（Artifact）
-        uses: actions/upload-artifact@v4
+      - name: 涓婁紶鏋勫缓浜х墿锛圓rtifact锛?        uses: actions/upload-artifact@v4
         with:
           name: TodoSearch-Windows
-          path: release/
+          path: |
+            release/*.exe
+            release/*.yml
           retention-days: 30
 
   release:
@@ -49,23 +47,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 下载构建产物
+      - name: 涓嬭浇鏋勫缓浜х墿
         uses: actions/download-artifact@v4
         with:
           name: TodoSearch-Windows
           path: release/
 
-      - name: 创建 GitHub Release
+      - name: 鍒涘缓 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/**
+          files: |
+            release/*.exe
+            release/*.yml
           generate_release_notes: true
           body: |
             ## TodoSearch v${{ github.ref_name }}
 
-            桌面悬浮待办清单与文件搜索工具。
-
-            ### 下载
-            - `*-portable.exe` — 便携版，无需安装
-            - `*-Setup.exe` — 安装版
+            妗岄潰鎮诞寰呭姙娓呭崟涓庢枃浠舵悳绱㈠伐鍏枫€?
+            ### 涓嬭浇
+            - `*-x64.exe` 鈥?NSIS 瀹夎鐗?            - `*-x64-portable.exe` 鈥?渚挎惡鐗堬紝鏃犻渶瀹夎
           fail_on_unmatched_files: false
