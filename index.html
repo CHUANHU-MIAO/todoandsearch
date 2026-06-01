@@ -17,17 +17,15 @@
     </div>
     <span class="app-title">小工具</span>
     <div class="window-controls">
-      <button class="ctrl-btn" id="float-btn" title="桌面浮窗">
+      <button class="ctrl-btn" id="pin-btn" title="固定窗口位置">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-          <line x1="8" y1="21" x2="16" y2="21"></line>
-          <line x1="12" y1="17" x2="12" y2="21"></line>
+          <path d="M12 2v10M12 2l4 4M12 2L8 6M6 14l6 8 6-8"></path>
         </svg>
       </button>
       <button class="ctrl-btn" id="min-btn" title="最小化">
         <svg width="12" height="12" viewBox="0 0 12 12"><rect y="5" width="12" height="2" fill="currentColor"/></svg>
       </button>
-      <button class="ctrl-btn ctrl-close" id="close-btn" title="隐藏到托盘">
+      <button class="ctrl-btn ctrl-close" id="close-btn" title="退出">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="2"/>
         </svg>
@@ -64,16 +62,6 @@
   <div class="content">
     <div class="tab-content active" id="tab-todo">
       <div class="todo-input-row">
-        <div class="color-picker" id="colorPicker">
-          <span class="color-dot" data-color="#8e8e93" style="background:#8e8e93" title="默认"></span>
-          <span class="color-dot" data-color="#34c759" style="background:#34c759" title="工作"></span>
-          <span class="color-dot" data-color="#007aff" style="background:#007aff" title="学习"></span>
-          <span class="color-dot" data-color="#af52de" style="background:#af52de" title="个人"></span>
-          <span class="color-dot" data-color="#ffcc00" style="background:#ffcc00" title="提醒"></span>
-          <span class="color-dot" data-color="#ff9500" style="background:#ff9500" title="重要"></span>
-          <span class="color-dot" data-color="#ff3b30" style="background:#ff3b30" title="紧急"></span>
-          <span class="color-dot" data-color="#ff2d55" style="background:#ff2d55" title="生活"></span>
-        </div>
         <div class="input-wrap">
           <input type="text" id="todoInput" placeholder="添加待办..." maxlength="200">
           <button id="addTodoBtn">添加</button>

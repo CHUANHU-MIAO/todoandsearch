@@ -1,11 +1,10 @@
 const state = {
   todos: [],
   filter: 'all',
-  selectedColor: '#8e8e93',
   searchResults: [],
   currentContextFile: null,
   searchCount: 0,
-  isFloatMode: false,
+  isPinned: false,
 };
 
 function loadTodos() {
@@ -162,7 +161,7 @@ function addTodo(text) {
   state.todos.push({
     id: generateId(),
     text: text.trim(),
-    color: state.selectedColor,
+    color: '#8e8e93',
     pinned: false,
     completed: false,
     completedAt: null,
@@ -225,16 +224,6 @@ document.querySelectorAll('.tab').forEach(tab => {
   });
 });
 
-// Color picker
-document.querySelectorAll('.color-dot').forEach(dot => {
-  dot.addEventListener('click', () => {
-    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-    dot.classList.add('active');
-    state.selectedColor = dot.dataset.color;
-  });
-});
-document.querySelector('.color-dot').classList.add('active');
-
 // Todo input
 const todoInput = document.getElementById('todoInput');
 const addBtn = document.getElementById('addTodoBtn');
@@ -283,14 +272,18 @@ document.getElementById('close-btn').addEventListener('click', () => {
   window.api.closeWindow();
 });
 
-// Float mode toggle
-const floatBtn = document.getElementById('float-btn');
-floatBtn.addEventListener('click', () => {
-  state.isFloatMode = !state.isFloatMode;
-  document.body.classList.toggle('float-mode', state.isFloatMode);
-  window.api.toggleFloatMode(state.isFloatMode);
-  floatBtn.title = state.isFloatMode ? '退出桌面浮窗' : '桌面浮窗';
-});
+// Pin window toggle
+const pinBtn = document.getElementById('pin-btn');
+
+function togglePinWindow() {
+  state.isPinned = !state.isPinned;
+  window.api.togglePinWindow(state.isPinned);
+  pinBtn.title = state.isPinned ? '取消固定' : '固定窗口位置';
+  pinBtn.classList.toggle('pinned', state.isPinned);
+  document.body.classList.toggle('window-pinned', state.isPinned);
+}
+
+pinBtn.addEventListener('click', togglePinWindow);
 
 // Search
 const searchInput = document.getElementById('searchInput');

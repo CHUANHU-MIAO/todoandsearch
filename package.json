@@ -1,6 +1,6 @@
 {
   "name": "todo-floating-search",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "桌面悬浮待办清单与文件搜索工具",
   "main": "main.js",
   "author": "TodoSearch",

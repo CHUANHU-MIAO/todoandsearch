@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   copyFile: (filePath) => ipcRenderer.invoke('copy-file', filePath),
   minimizeWindow: () => ipcRenderer.invoke('min-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
-  toggleFloatMode: (enabled) => ipcRenderer.invoke('toggle-float-mode', enabled),
+  togglePinWindow: (enabled) => ipcRenderer.invoke('toggle-pin-window', enabled),
   getWindowBounds: () => ipcRenderer.invoke('get-window-bounds'),
   onSearchResult: (callback) => {
     const handler = (event, data) => callback(data);

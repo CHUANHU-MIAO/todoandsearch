@@ -122,7 +122,7 @@ function createWindow() {
     minWidth: 340,
     minHeight: 440,
     frame: false,
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     skipTaskbar: false,
     resizable: true,
     hasShadow: true,
@@ -247,31 +247,17 @@ ipcMain.handle('min-window', () => {
 });
 
 ipcMain.handle('close-window', () => {
-  if (mainWindow) mainWindow.hide();
+  app.isQuitting = true;
+  app.quit();
 });
 
-let isFloatMode = false;
-let normalBounds = null;
-
-ipcMain.handle('toggle-float-mode', (event, enabled) => {
+ipcMain.handle('toggle-pin-window', (event, enabled) => {
   if (!mainWindow) return;
-  isFloatMode = enabled;
-  
+  mainWindow.setSkipTaskbar(enabled);
   if (enabled) {
-    // 保存当前窗口位置和大小
-    normalBounds = mainWindow.getBounds();
-    // 设置为小型浮窗
-    mainWindow.setResizable(false);
-    mainWindow.setSize(320, 60, true);
-    mainWindow.setPosition(Math.round((require('electron').screen.getPrimaryDisplay().workAreaSize.width - 320) / 2), 80, true);
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
   } else {
-    // 恢复原来的窗口位置和大小
-    mainWindow.setResizable(true);
-    if (normalBounds) {
-      mainWindow.setBounds(normalBounds, true);
-    } else {
-      mainWindow.setSize(400, 580, true);
-    }
+    mainWindow.setAlwaysOnTop(false);
   }
 });
 
