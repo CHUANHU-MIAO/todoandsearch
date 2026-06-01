@@ -447,19 +447,19 @@ function showToast(msg) {
     toast = document.createElement('div');
     toast.className = 'toast';
     toast.style.cssText = `
-      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-      background: var(--bg-secondary); color: var(--text-primary);
-      padding: 8px 16px; border-radius: 6px; font-size: 12px;
-      border: 1px solid var(--border-color);
-      box-shadow: var(--shadow); z-index: 9999;
-      transition: opacity 0.3s; pointer-events: none;
+      position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+      background: #2e2e42; color: #e4e4ef;
+      padding: 7px 14px; border-radius: 6px; font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25); z-index: 9999;
+      opacity: 0; pointer-events: none;
     `;
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
   toast.style.opacity = '1';
   clearTimeout(toast._hide);
-  toast._hide = setTimeout(() => { toast.style.opacity = '0'; }, 1500);
+  toast._hide = setTimeout(() => { toast.style.opacity = '0'; }, 1200);
 }
 
 // Calendar
