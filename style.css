@@ -854,6 +854,10 @@ body.window-pinned .ctrl-close {
 }
 
 /* ── File type icon colors ── */
+.search-item-icon.folder { color: #f0c040; background: rgba(240, 192, 64, 0.12); }
+.search-item-icon.document { color: #5a9cf5; background: rgba(90, 156, 245, 0.12); }
+.search-item-icon.image { color: #b87aef; background: rgba(184, 122, 239, 0.12); }
+.search-item-icon.other { color: #9393a8; background: rgba(147, 147, 168, 0.1); }
 .search-item-icon.doc { color: #5a9cf5; background: rgba(90, 156, 245, 0.12); }
 .search-item-icon.pdf { color: #f0555a; background: rgba(240, 85, 90, 0.12); }
 .search-item-icon.txt { color: #9393a8; background: rgba(147, 147, 168, 0.1); }
@@ -867,3 +871,33 @@ body.window-pinned .ctrl-close {
 .search-item-icon.exe { color: #5ac8f0; background: rgba(90, 200, 240, 0.12); }
 .search-item-icon.font { color: #b87aef; background: rgba(184, 122, 239, 0.12); }
 .search-item-icon.file { color: var(--accent); background: var(--accent-subtle); }
+
+/* ── Category badges ── */
+.search-category-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.category-folder {
+  color: #f0c040;
+  background: rgba(240, 192, 64, 0.12);
+}
+
+.category-document {
+  color: #5a9cf5;
+  background: rgba(90, 156, 245, 0.12);
+}
+
+.category-image {
+  color: #b87aef;
+  background: rgba(184, 122, 239, 0.12);
+}
+
+.category-other {
+  color: #9393a8;
+  background: rgba(147, 147, 168, 0.1);
+}

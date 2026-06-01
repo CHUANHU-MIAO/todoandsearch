@@ -76,7 +76,11 @@ function getFileTypeIcon(name) {
   return typeMap[ext] || 'file';
 }
 
-function getFileTypeIconSvg(name) {
+function getFileTypeIconSvg(name, category) {
+  // 文件夹使用专门的图标
+  if (category === 'folder') {
+    return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>';
+  }
   const type = getFileTypeIcon(name);
   const icons = {
     doc: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
@@ -333,19 +337,36 @@ function startSearch(query) {
   window.api.searchFiles(query);
 }
 
+// 获取分类显示名称
+function getCategoryLabel(category) {
+  const labels = {
+    folder: '文件夹',
+    document: '文档',
+    image: '图片',
+    other: '其他',
+  };
+  return labels[category] || '其他';
+}
+
+// 获取分类样式类名
+function getCategoryClass(category) {
+  return `category-${category}`;
+}
+
 function appendResult(data) {
   const div = document.createElement('div');
   div.className = 'search-item';
   div.dataset.path = data.path;
-  const fileType = getFileTypeIcon(data.name);
+  div.dataset.category = data.category || 'other';
+  const category = data.category || getFileTypeIcon(data.name);
   div.innerHTML = `
-    <div class="search-item-icon ${fileType}">${getFileTypeIconSvg(data.name)}</div>
+    <div class="search-item-icon ${category}">${getFileTypeIconSvg(data.name, data.category)}</div>
     <div class="search-item-info">
-      <div class="search-item-name">${highlightMatch(escapeHtml(data.name), searchInput.value)}</div>
+      <div class="search-item-name">${highlightFuzzyMatch(escapeHtml(data.name), searchInput.value)}</div>
       <div class="search-item-path">${escapeHtml(data.path)}</div>
     </div>
     <div class="search-item-meta">
-      ${formatSize(data.size)}<br>${formatDate(data.mtime)}
+      <span class="search-category-badge ${getCategoryClass(data.category)}">${getCategoryLabel(data.category)}</span>
     </div>`;
   searchResults.appendChild(div);
 }
@@ -355,6 +376,34 @@ function highlightMatch(text, query) {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regex = new RegExp(`(${escaped})`, 'gi');
   return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+// 模糊匹配高亮：按顺序高亮匹配的字符
+function highlightFuzzyMatch(text, query) {
+  if (!query) return text;
+  const queryLower = query.toLowerCase();
+  const textLower = text.toLowerCase();
+  let result = '';
+  let queryIndex = 0;
+  let lastIndex = 0;
+  
+  for (let i = 0; i < text.length && queryIndex < queryLower.length; i++) {
+    if (textLower[i] === queryLower[queryIndex]) {
+      // 添加之前的普通文本
+      if (lastIndex < i) {
+        result += escapeHtml(text.slice(lastIndex, i));
+      }
+      // 添加高亮的字符
+      result += `<span class="highlight">${escapeHtml(text[i])}</span>`;
+      lastIndex = i + 1;
+      queryIndex++;
+    }
+  }
+  // 添加剩余的普通文本
+  if (lastIndex < text.length) {
+    result += escapeHtml(text.slice(lastIndex));
+  }
+  return result || escapeHtml(text);
 }
 
 searchInput.addEventListener('input', () => {

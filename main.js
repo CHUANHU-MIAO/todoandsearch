@@ -6,17 +6,38 @@ const { exec } = require('child_process');
 let mainWindow = null;
 let tray = null;
 let abortController = null;
-const CONCURRENCY = 6;
+const CONCURRENCY = 12;
 const MAX_RESULTS = 3000;
 
+// 跳过的系统目录 - 扩展列表提高速度
 const SKIP_DIRS = new Set([
   'windows', 'winnt', 'winxs', '$recycle.bin', 'system volume information',
-  'program files', 'program files (x86)', 'programdata',
-  'appdata', 'application data', 'local settings',
-  'temp', 'tmp', 'cache', 'cached', '.git', 'node_modules',
-  'recovery', 'boot', 'system32', 'syswow64', 'config.msi',
-  'msocache', 'installer', '$windows.~ws', '$windows.~bt',
-  'python27', 'python31', 'python38', 'python39', 'python310',
+  'program files', 'program files (x86)', 'programdata', 'perflogs',
+  'appdata', 'application data', 'local settings', 'common files',
+  'temp', 'tmp', 'cache', 'cached', '.git', 'node_modules', '.svn', '.hg',
+  'recovery', 'boot', 'system32', 'syswow64', 'config.msi', 'drivers',
+  'msocache', 'installer', '$windows.~ws', '$windows.~bt', '$getcurrent',
+  'python27', 'python31', 'python38', 'python39', 'python310', 'python311',
+  'android', '.android', '.vscode', '.idea', '__pycache__', '.nuget',
+  'microsoft', 'packages', 'nuget', 'pip', 'npm', 'yarn',
+  'crashdumps', 'errorreports', 'telemetry', 'diagnostics',
+]);
+
+// 文档类扩展名
+const DOC_EXTS = new Set([
+  'doc', 'docx', 'pdf', 'txt', 'rtf', 'odt', 'wps',
+  'xls', 'xlsx', 'csv', 'ods', 'et', 'ett',
+  'ppt', 'pptx', 'odp', 'dps', 'dpt',
+  'md', 'markdown', 'rst', 'tex', 'latex',
+  'epub', 'mobi', 'azw3', 'fb2',
+  'pages', 'numbers', 'key',
+]);
+
+// 图片类扩展名
+const IMG_EXTS = new Set([
+  'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico', 'tiff', 'tif',
+  'psd', 'ai', 'eps', 'raw', 'cr2', 'nef', 'arw', 'dng',
+  'heic', 'heif', 'avif', 'jxl', 'apng',
 ]);
 
 function shouldSkipDir(name) {
@@ -25,6 +46,29 @@ function shouldSkipDir(name) {
   if (name.startsWith('$')) return true;
   if (name.startsWith('.')) return true;
   return false;
+}
+
+// 获取文件分类
+function getFileCategory(name, isDir) {
+  if (isDir) return 'folder';
+  const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+  if (DOC_EXTS.has(ext)) return 'document';
+  if (IMG_EXTS.has(ext)) return 'image';
+  return 'other';
+}
+
+// 模糊匹配：检查 query 的每个字是否按顺序出现在 name 中
+function fuzzyMatch(name, query) {
+  const nameLower = name.toLowerCase();
+  const queryLower = query.toLowerCase();
+  let nameIndex = 0;
+  for (let i = 0; i < queryLower.length; i++) {
+    const char = queryLower[i];
+    const foundIndex = nameLower.indexOf(char, nameIndex);
+    if (foundIndex === -1) return false;
+    nameIndex = foundIndex + 1;
+  }
+  return true;
 }
 
 function createTrayIcon() {
@@ -61,31 +105,35 @@ async function getAvailableDrives() {
 }
 
 async function searchInDir(dirPath, query, signal, onResult, depth = 0) {
-  if (signal.aborted || depth > 15) return;
+  if (signal.aborted || depth > 12) return;
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     const subdirs = [];
     for (const entry of entries) {
       if (signal.aborted) return;
-      const fullPath = path.join(dirPath, entry.name);
       try {
         if (entry.isDirectory()) {
-          if (!shouldSkipDir(entry.name)) {
-            subdirs.push(fullPath);
-          }
-        } else if (entry.isFile() || entry.isSymbolicLink()) {
-          if (entry.name.toLowerCase().includes(query.toLowerCase())) {
-            let stat;
-            try {
-              stat = await fs.stat(fullPath);
-            } catch (e) {
-              stat = { size: 0, mtime: new Date(0) };
-            }
+          // 文件夹也参与匹配
+          if (fuzzyMatch(entry.name, query)) {
             onResult({
               name: entry.name,
-              path: fullPath,
-              size: stat.size,
-              mtime: stat.mtime.toISOString(),
+              path: path.join(dirPath, entry.name),
+              size: 0,
+              mtime: null,
+              category: 'folder',
+            });
+          }
+          if (!shouldSkipDir(entry.name)) {
+            subdirs.push(path.join(dirPath, entry.name));
+          }
+        } else if (entry.isFile() || entry.isSymbolicLink()) {
+          if (fuzzyMatch(entry.name, query)) {
+            onResult({
+              name: entry.name,
+              path: path.join(dirPath, entry.name),
+              size: 0,
+              mtime: null,
+              category: getFileCategory(entry.name, false),
             });
           }
         }
