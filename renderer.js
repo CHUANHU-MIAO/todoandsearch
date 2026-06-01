@@ -5,6 +5,7 @@ const state = {
   searchResults: [],
   currentContextFile: null,
   searchCount: 0,
+  isFloatMode: false,
 };
 
 function loadTodos() {
@@ -44,6 +45,56 @@ function formatDate(isoStr) {
 function getFileExt(name) {
   const i = name.lastIndexOf('.');
   return i > 0 ? name.slice(i + 1).toUpperCase() : '?';
+}
+
+function getFileTypeIcon(name) {
+  const ext = getFileExt(name).toLowerCase();
+  const typeMap = {
+    // 文档
+    'doc': 'doc', 'docx': 'doc', 'pdf': 'pdf', 'txt': 'txt', 'rtf': 'doc', 'odt': 'doc',
+    // 表格
+    'xls': 'xls', 'xlsx': 'xls', 'csv': 'xls', 'ods': 'xls',
+    // 演示文稿
+    'ppt': 'ppt', 'pptx': 'ppt', 'odp': 'ppt',
+    // 图片
+    'jpg': 'img', 'jpeg': 'img', 'png': 'img', 'gif': 'img', 'bmp': 'img', 'svg': 'img', 'webp': 'img', 'ico': 'img', 'tiff': 'img',
+    // 视频
+    'mp4': 'video', 'avi': 'video', 'mkv': 'video', 'mov': 'video', 'wmv': 'video', 'flv': 'video', 'webm': 'video',
+    // 音频
+    'mp3': 'audio', 'wav': 'audio', 'flac': 'audio', 'aac': 'audio', 'ogg': 'audio', 'wma': 'audio', 'm4a': 'audio',
+    // 压缩包
+    'zip': 'zip', 'rar': 'zip', '7z': 'zip', 'tar': 'zip', 'gz': 'zip', 'bz2': 'zip', 'xz': 'zip',
+    // 代码
+    'js': 'code', 'ts': 'code', 'jsx': 'code', 'tsx': 'code', 'html': 'code', 'css': 'code', 'scss': 'code', 'less': 'code',
+    'py': 'code', 'java': 'code', 'cpp': 'code', 'c': 'code', 'h': 'code', 'cs': 'code', 'php': 'code', 'rb': 'code',
+    'go': 'code', 'rs': 'code', 'swift': 'code', 'kt': 'code', 'json': 'code', 'xml': 'code', 'yaml': 'code', 'yml': 'code',
+    'md': 'code', 'sql': 'code', 'sh': 'code', 'bat': 'code', 'ps1': 'code',
+    // 可执行文件
+    'exe': 'exe', 'msi': 'exe', 'bat': 'exe', 'cmd': 'exe', 'ps1': 'exe', 'com': 'exe',
+    // 字体
+    'ttf': 'font', 'otf': 'font', 'woff': 'font', 'woff2': 'font', 'eot': 'font',
+  };
+  return typeMap[ext] || 'file';
+}
+
+function getFileTypeIconSvg(name) {
+  const type = getFileTypeIcon(name);
+  const icons = {
+    doc: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
+    pdf: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M12 18v-6l-3 3"></path><path d="M12 18l3-3"></path></svg>',
+    txt: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>',
+    xls: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>',
+    ppt: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>',
+    img: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>',
+    video: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>',
+    audio: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>',
+    zip: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path></svg>',
+    code: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>',
+    exe: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6"></path><path d="M12 19h8"></path></svg>',
+    font: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>',
+    file: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>',
+  };
+  return icons[type] || icons.file;
 }
 
 function renderTodos() {
@@ -232,6 +283,15 @@ document.getElementById('close-btn').addEventListener('click', () => {
   window.api.closeWindow();
 });
 
+// Float mode toggle
+const floatBtn = document.getElementById('float-btn');
+floatBtn.addEventListener('click', () => {
+  state.isFloatMode = !state.isFloatMode;
+  document.body.classList.toggle('float-mode', state.isFloatMode);
+  window.api.toggleFloatMode(state.isFloatMode);
+  floatBtn.title = state.isFloatMode ? '退出桌面浮窗' : '桌面浮窗';
+});
+
 // Search
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
@@ -284,8 +344,9 @@ function appendResult(data) {
   const div = document.createElement('div');
   div.className = 'search-item';
   div.dataset.path = data.path;
+  const fileType = getFileTypeIcon(data.name);
   div.innerHTML = `
-    <div class="search-item-icon">${getFileExt(data.name)}</div>
+    <div class="search-item-icon ${fileType}">${getFileTypeIconSvg(data.name)}</div>
     <div class="search-item-info">
       <div class="search-item-name">${highlightMatch(escapeHtml(data.name), searchInput.value)}</div>
       <div class="search-item-path">${escapeHtml(data.path)}</div>

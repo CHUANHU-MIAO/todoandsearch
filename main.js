@@ -250,6 +250,36 @@ ipcMain.handle('close-window', () => {
   if (mainWindow) mainWindow.hide();
 });
 
+let isFloatMode = false;
+let normalBounds = null;
+
+ipcMain.handle('toggle-float-mode', (event, enabled) => {
+  if (!mainWindow) return;
+  isFloatMode = enabled;
+  
+  if (enabled) {
+    // 保存当前窗口位置和大小
+    normalBounds = mainWindow.getBounds();
+    // 设置为小型浮窗
+    mainWindow.setResizable(false);
+    mainWindow.setSize(320, 60, true);
+    mainWindow.setPosition(Math.round((require('electron').screen.getPrimaryDisplay().workAreaSize.width - 320) / 2), 80, true);
+  } else {
+    // 恢复原来的窗口位置和大小
+    mainWindow.setResizable(true);
+    if (normalBounds) {
+      mainWindow.setBounds(normalBounds, true);
+    } else {
+      mainWindow.setSize(400, 580, true);
+    }
+  }
+});
+
+ipcMain.handle('get-window-bounds', () => {
+  if (!mainWindow) return null;
+  return mainWindow.getBounds();
+});
+
 app.whenReady().then(() => {
   createWindow();
   createTray();

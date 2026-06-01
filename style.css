@@ -855,3 +855,35 @@ body {
 .cal-detail-empty.show {
   display: flex;
 }
+
+/* Float mode styles */
+body.float-mode .titlebar {
+  display: none;
+}
+
+body.float-mode .tabs {
+  display: none;
+}
+
+body.float-mode .content {
+  height: 100vh;
+}
+
+body.float-mode {
+  overflow: hidden;
+}
+
+/* File type icon colors */
+.search-item-icon.doc { color: #4a90e2; background: rgba(74, 144, 226, 0.15); }
+.search-item-icon.pdf { color: #ff3b30; background: rgba(255, 59, 48, 0.15); }
+.search-item-icon.txt { color: #8e8e93; background: rgba(142, 142, 147, 0.15); }
+.search-item-icon.xls { color: #34c759; background: rgba(52, 199, 89, 0.15); }
+.search-item-icon.ppt { color: #ff9500; background: rgba(255, 149, 0, 0.15); }
+.search-item-icon.img { color: #af52de; background: rgba(175, 82, 222, 0.15); }
+.search-item-icon.video { color: #ff2d55; background: rgba(255, 45, 85, 0.15); }
+.search-item-icon.audio { color: #ffcc00; background: rgba(255, 204, 0, 0.15); }
+.search-item-icon.zip { color: #5856d6; background: rgba(88, 86, 214, 0.15); }
+.search-item-icon.code { color: #007aff; background: rgba(0, 122, 255, 0.15); }
+.search-item-icon.exe { color: #64d2ff; background: rgba(100, 210, 255, 0.15); }
+.search-item-icon.font { color: #bf5af2; background: rgba(191, 90, 242, 0.15); }
+.search-item-icon.file { color: var(--accent); background: rgba(108, 92, 231, 0.15); }
