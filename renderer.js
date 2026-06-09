@@ -295,16 +295,23 @@ const searchBtn = document.getElementById('searchBtn');
 const searchStatus = document.getElementById('searchStatus');
 const searchResults = document.getElementById('searchResults');
 let searchTimeout = null;
-let cleanupResultListener = null;
+let cleanupBatchListener = null;
 let cleanupDoneListener = null;
+// 虚拟滚动相关
+let virtualResults = [];
+let visibleStart = 0;
+let visibleEnd = 0;
+const ROW_HEIGHT = 48; // 每行预估高度
+const BUFFER_ROWS = 8;  // 上下缓冲行数
 
 function startSearch(query) {
-  if (cleanupResultListener) cleanupResultListener();
+  if (cleanupBatchListener) cleanupBatchListener();
   if (cleanupDoneListener) cleanupDoneListener();
 
   window.api.cancelSearch();
   state.searchResults = [];
   state.searchCount = 0;
+  virtualResults = [];
   searchResults.innerHTML = '';
 
   if (!query.trim()) {
@@ -315,21 +322,39 @@ function startSearch(query) {
   searchStatus.textContent = '搜索中...';
   searchStatus.style.color = 'var(--text-secondary)';
 
-  cleanupResultListener = window.api.onSearchResult((data) => {
-    state.searchCount = data.index;
-    state.searchResults.push(data);
-    appendResult(data);
-    searchStatus.textContent = `搜索中... 已找到 ${state.searchCount} 个文件`;
+  // 使用 DocumentFragment 批量插入
+  let pendingFragment = document.createDocumentFragment();
+  let pendingCount = 0;
+
+  const flushPending = () => {
+    if (pendingCount > 0) {
+      searchResults.appendChild(pendingFragment);
+      pendingFragment = document.createDocumentFragment();
+      pendingCount = 0;
+    }
+  };
+
+  cleanupBatchListener = window.api.onSearchBatch((batch) => {
+    for (const data of batch) {
+      virtualResults.push(data);
+      const div = buildResultElement(data);
+      pendingFragment.appendChild(div);
+      pendingCount++;
+    }
+    // 每 50 个刷新一次 DOM，保持 UI 响应
+    if (pendingCount >= 50) flushPending();
+    searchStatus.textContent = `搜索中... 已找到 ${virtualResults.length} 个文件`;
   });
 
   cleanupDoneListener = window.api.onSearchDone((data) => {
-    const total = data.total || state.searchResults.length;
+    flushPending();
+    const total = data.total || virtualResults.length;
     if (total === 0) {
       searchStatus.textContent = '未找到匹配的文件';
     } else if (data.maxReached) {
       searchStatus.textContent = `结果过多，已显示前 ${total} 个文件（请精确搜索）`;
     } else {
-      searchStatus.textContent = `搜索完成，共找到 ${total} 个文件`;
+      searchStatus.textContent = `搜索完成，共找到 ${total} 个文件${data.cached ? ' (缓存)' : ''}`;
     }
     searchStatus.style.color = 'var(--text-tertiary)';
   });
@@ -337,38 +362,22 @@ function startSearch(query) {
   window.api.searchFiles(query);
 }
 
-// 获取分类显示名称
-function getCategoryLabel(category) {
-  const labels = {
-    folder: '文件夹',
-    document: '文档',
-    image: '图片',
-    other: '其他',
-  };
-  return labels[category] || '其他';
-}
-
-// 获取分类样式类名
-function getCategoryClass(category) {
-  return `category-${category}`;
-}
-
-function appendResult(data) {
+function buildResultElement(data) {
   const div = document.createElement('div');
   div.className = 'search-item';
   div.dataset.path = data.path;
   div.dataset.category = data.category || 'other';
-  const category = data.category || getFileTypeIcon(data.name);
   div.innerHTML = `
-    <div class="search-item-icon ${category}">${getFileTypeIconSvg(data.name, data.category)}</div>
+    <div class="search-item-icon ${data.category || 'other'}">${getFileTypeIconSvg(data.name, data.category)}</div>
     <div class="search-item-info">
       <div class="search-item-name">${highlightFuzzyMatch(escapeHtml(data.name), searchInput.value)}</div>
       <div class="search-item-path">${escapeHtml(data.path)}</div>
     </div>
     <div class="search-item-meta">
       <span class="search-category-badge ${getCategoryClass(data.category)}">${getCategoryLabel(data.category)}</span>
+      ${data.size > 0 ? `<span style="font-size:10px;color:var(--text-tertiary)">${formatSize(data.size)}</span>` : ''}
     </div>`;
-  searchResults.appendChild(div);
+  return div;
 }
 
 function highlightMatch(text, query) {
@@ -404,6 +413,16 @@ function highlightFuzzyMatch(text, query) {
     result += escapeHtml(text.slice(lastIndex));
   }
   return result || escapeHtml(text);
+}
+
+// 获取分类显示名称
+function getCategoryLabel(category) {
+  const labels = { folder: '文件夹', document: '文档', image: '图片', other: '其他' };
+  return labels[category] || '其他';
+}
+
+function getCategoryClass(category) {
+  return `category-${category}`;
 }
 
 searchInput.addEventListener('input', () => {
@@ -495,20 +514,12 @@ function showToast(msg) {
   if (!toast) {
     toast = document.createElement('div');
     toast.className = 'toast';
-    toast.style.cssText = `
-      position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-      background: #2e2e42; color: #e4e4ef;
-      padding: 7px 14px; border-radius: 6px; font-size: 12px;
-      border: 1px solid rgba(255,255,255,0.06);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.25); z-index: 9999;
-      opacity: 0; pointer-events: none;
-    `;
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
-  toast.style.opacity = '1';
+  toast.classList.add('show');
   clearTimeout(toast._hide);
-  toast._hide = setTimeout(() => { toast.style.opacity = '0'; }, 1200);
+  toast._hide = setTimeout(() => { toast.classList.remove('show'); }, 1200);
 }
 
 // Calendar
@@ -645,16 +656,24 @@ function hideDayDetail() {
   document.getElementById('calGrid').style.display = 'flex';
 }
 
+let calDebounce = null;
+
 function goToPrevMonth() {
-  calMonth--;
-  if (calMonth < 0) { calMonth = 11; calYear--; }
-  renderCalendar();
+  clearTimeout(calDebounce);
+  calDebounce = setTimeout(() => {
+    calMonth--;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    renderCalendar();
+  }, 80);
 }
 
 function goToNextMonth() {
-  calMonth++;
-  if (calMonth > 11) { calMonth = 0; calYear++; }
-  renderCalendar();
+  clearTimeout(calDebounce);
+  calDebounce = setTimeout(() => {
+    calMonth++;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    renderCalendar();
+  }, 80);
 }
 
 function goToToday() {

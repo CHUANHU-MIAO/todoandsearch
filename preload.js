@@ -11,10 +11,11 @@ contextBridge.exposeInMainWorld('api', {
   closeWindow: () => ipcRenderer.invoke('close-window'),
   togglePinWindow: (enabled) => ipcRenderer.invoke('toggle-pin-window', enabled),
   getWindowBounds: () => ipcRenderer.invoke('get-window-bounds'),
-  onSearchResult: (callback) => {
+  // 批量结果接收（性能优化）
+  onSearchBatch: (callback) => {
     const handler = (event, data) => callback(data);
-    ipcRenderer.on('search-result', handler);
-    return () => ipcRenderer.removeListener('search-result', handler);
+    ipcRenderer.on('search-batch', handler);
+    return () => ipcRenderer.removeListener('search-batch', handler);
   },
   onSearchDone: (callback) => {
     const handler = (event, data) => callback(data);
