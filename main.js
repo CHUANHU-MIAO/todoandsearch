@@ -432,10 +432,9 @@ ipcMain.handle('close-window', () => {
 
 ipcMain.handle('toggle-pin-window', (event, enabled) => {
   if (!mainWindow) return;
-  // 固定模式下：禁止拖动（通过 CSS）、禁止调整大小、显示在任务栏
-  // 不再使用 alwaysOnTop，不遮挡其他应用
+  // 固定模式下：禁止拖动（CSS）、禁止调整大小、隐藏任务栏图标
   mainWindow.setResizable(!enabled);
-  mainWindow.setSkipTaskbar(false);
+  mainWindow.setSkipTaskbar(enabled);
 });
 
 ipcMain.handle('get-window-bounds', () => {
