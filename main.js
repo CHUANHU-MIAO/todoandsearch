@@ -1,14 +1,15 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, clipboard, shell } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const { exec } = require('child_process');
 
 let mainWindow = null;
 let tray = null;
 let abortController = null;
-const CONCURRENCY = 20;
+const CONCURRENCY = 8;
 const MAX_RESULTS = 3000;
-const BATCH_SIZE = 30;
+const BATCH_SIZE = 50;
 const CACHE_TTL = 30000; // 30 秒缓存
 
 // 跳过的系统目录 - 扩展列表提高速度
@@ -150,33 +151,17 @@ function createTrayIcon() {
   return nativeImage.createFromBuffer(buf, { width: size, height: size });
 }
 
-async function getAvailableDrives() {
+function getAvailableDrives() {
   const drives = [];
   for (let i = 65; i <= 90; i++) {
     const letter = String.fromCharCode(i);
-    try {
-      await fs.access(letter + ':\\');
-      drives.push(letter + ':\\');
-    } catch (e) {}
+    try { fsSync.accessSync(letter + ':\\', fsSync.constants.R_OK); drives.push(letter + ':\\'); } catch (e) {}
   }
-  return drives;
+  return Promise.resolve(drives);
 }
 
-async function searchInDir(dirPath, prep, signal, resultsRef, depth = 0, visited = new Set()) {
-  if (signal.aborted || depth > 12) return;
-
-  // 解析真实路径防止 symlink 循环
-  let realPath = dirPath;
-  try {
-    if (depth > 0) {
-      const stat = await fs.lstat(dirPath);
-      if (stat.isSymbolicLink()) {
-        realPath = await fs.realpath(dirPath);
-        if (visited.has(realPath)) return;
-        visited.add(realPath);
-      }
-    }
-  } catch (e) { return; }
+async function searchInDir(dirPath, prep, signal, resultsRef, depth = 0) {
+  if (signal.aborted || depth > 8) return;
 
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -204,16 +189,10 @@ async function searchInDir(dirPath, prep, signal, resultsRef, depth = 0, visited
           }
         } else if (entry.isFile() || entry.isSymbolicLink()) {
           if (fuzzyMatchPrepared(nameLower, prep)) {
-            // 只对匹配的文件获取 size，减少不必要的 stat 调用
-            let fileSize = 0;
-            try {
-              const stat = await fs.stat(path.join(dirPath, entry.name));
-              fileSize = stat.size;
-            } catch (e) {}
             resultsRef.buffer.push({
               name: entry.name,
               path: path.join(dirPath, entry.name),
-              size: fileSize,
+              size: 0,
               mtime: null,
               category: getFileCategory(entry.name, false),
             });
@@ -227,7 +206,7 @@ async function searchInDir(dirPath, prep, signal, resultsRef, depth = 0, visited
       if (signal.aborted || resultsRef.aborted) return;
       const batch = subdirs.slice(i, i + CONCURRENCY);
       await Promise.all(batch.map(d =>
-        searchInDir(d, prep, signal, resultsRef, depth + 1, visited)
+        searchInDir(d, prep, signal, resultsRef, depth + 1)
       ));
     }
   } catch (e) {}
@@ -310,15 +289,15 @@ ipcMain.on('search-files', (event, query) => {
 
   // 收集所有驱动器结果，批量发送
   const allBuffer = [];
-  let sentCount = 0;
 
   const sendBatch = () => {
     if (signal.aborted || !win || win.isDestroyed()) return;
     if (allBuffer.length === 0) return;
-    const batch = allBuffer.splice(0);
-    sentCount += batch.length;
+    const batch = allBuffer.splice(0, allBuffer.length);
     win.webContents.send('search-batch', batch);
   };
+
+  let totalSent = 0;
 
   // 驱动级并行：一次性启动所有驱动器
   getAvailableDrives().then(drives => {
@@ -330,44 +309,18 @@ ipcMain.on('search-files', (event, query) => {
       if (idx > 0) { drives.splice(idx, 1); drives.unshift(homeDrive); }
     }
 
-    let completedDrives = 0;
-    let totalSent = 0;
-
-    const handleDriveResult = (buffer) => {
-      if (signal.aborted) return;
-      for (const r of buffer) {
-        if (totalSent >= MAX_RESULTS) {
-          abortController.abort();
-          return;
-        }
-        totalSent++;
-        allBuffer.push({ ...r, index: totalSent });
-        if (allBuffer.length >= BATCH_SIZE) sendBatch();
-      }
-    };
-
     Promise.all(drives.map(drive => {
       const ref = { buffer: [], aborted: false };
       return searchInDir(drive, prep, signal, ref).then(() => {
-        if (!signal.aborted) handleDriveResult(ref.buffer);
-        completedDrives++;
-        // 每个驱动器完成后发送一次增量推送
-        if (allBuffer.length > 0 && !signal.aborted && totalSent < MAX_RESULTS) sendBatch();
+        if (signal.aborted || ref.aborted) return;
+        for (const r of ref.buffer) {
+          if (totalSent >= MAX_RESULTS) { abortController.abort(); break; }
+          totalSent++;
+          allBuffer.push(r);
+          if (allBuffer.length >= BATCH_SIZE) sendBatch();
+        }
       });
-    })).then(() => {
-      // 发送剩余结果
-      if (!signal.aborted) sendBatch();
-
-      // 缓存结果
-      if (!signal.aborted && totalSent > 0 && totalSent < MAX_RESULTS) {
-        const finalResults = [];
-        // 重新收集（简化：直接不给缓存太多结果）
-      }
-
-      if (!signal.aborted && win && !win.isDestroyed()) {
-        win.webContents.send('search-done', { total: totalSent, maxReached: totalSent >= MAX_RESULTS });
-      }
-    }).catch(() => {
+    })).finally(() => {
       sendBatch();
       if (!signal.aborted && win && !win.isDestroyed()) {
         win.webContents.send('search-done', { total: totalSent, maxReached: totalSent >= MAX_RESULTS });
